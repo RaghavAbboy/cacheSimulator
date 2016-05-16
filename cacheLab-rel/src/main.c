@@ -61,9 +61,7 @@ handle_option(char *arg)
 void
 printStudentInfo()
 {
-  printf("Student Name:   %s\n", studentName);
-  printf("Student ID:     %s\n", studentID);
-  printf("Student email:  %s\n", email);
+  printf("\n----- Golden Standard -----\n\n");
 }
 
 // Print out the memory hierarchy
@@ -115,7 +113,8 @@ printCacheStats()
       printf("  I-cache miss rate:   %17.2f%%\n",
           100.0*(double)icacheMisses/(double)icacheRefs);
       printf("  avg I-cache access time: %13.2f cycles\n",
-          (double)((icachePenalties + icacheRefs * icacheHitTime))/icacheRefs);
+          (double)((icachePenalties + icacheHitTime * icacheRefs))
+          / icacheRefs);
     } else {
       printf("  I-cache miss rate:                   -\n");
       printf("  avg I-cache access time:             -\n");
@@ -129,7 +128,8 @@ printCacheStats()
       printf("  D-cache miss rate:   %17.2f%%\n",
           100.0*(double)dcacheMisses/(double)dcacheRefs);
       printf("  avg D-cache access time: %13.2f cycles\n",
-          (double)((dcachePenalties + dcacheRefs * dcacheHitTime))/dcacheRefs);
+          (double)((dcachePenalties + dcacheHitTime * dcacheRefs))
+          / dcacheRefs);
     } else {
       printf("  D-cache miss rate:                   -\n");
       printf("  avg D-cache access time:             -\n");
