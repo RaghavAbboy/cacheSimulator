@@ -1,0 +1,45 @@
+#!/bin/bash
+
+info() {
+  printf "\r  [ \033[00;34m..\033[0m ] $1\n"
+}
+
+user() {
+  printf "\r  [ \033[0;33m??\033[0m ] $1\n"
+}
+
+success() {
+  printf "\r\033[2K  [ \033[00;32mOK\033[0m ] $1\n"
+}
+
+fail () {
+  printf "\r\033[2K  [\033[0;31mFAIL\033[0m] $1\n"
+  echo ''
+  exit
+}
+
+cd src;
+
+info 'Making Project'
+if ! make &>/dev/null; then
+  make clean &>/dev/null
+  fail 'Code does not compile. Ensure it compiles before submitting'
+  exit
+fi
+
+make clean &>/dev/null
+cd ..;
+
+# Package up student's code
+info 'Packaging your code'
+
+user ' - Enter your UCSD Active Directory account name'
+read -e account_name
+
+info 'Creating project archive'
+cp -r src $account_name
+tar -czf $account_name.tgz $account_name
+rm -rf $account_name
+
+success "Successfully archived your project to: $account_name.tgz"
+info 'Please submit your tarball per the instructions in the README'
