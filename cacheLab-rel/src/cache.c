@@ -90,6 +90,87 @@ int blockOffsetBits;
 //------------------------------------//
 //          Helper Functions          //
 //------------------------------------//
+int getLRUwayIndex (char cacheType, int setIndex) {
+  int wayIndex;
+  int lruCandidate;
+  struct set set_curr;
+
+
+  switch(cacheType) {
+    case 'I':
+      set_curr = icache.sets[setIndex];
+      //find the way which is LRU
+      lruCandidate = icacheAssoc - 1;
+      for(j=0; j<icacheAssoc; j++) {
+        if(set_curr.ways[j].lru == lruCandidate) { return j; }
+      }
+      break;
+    case 'D':
+      set_curr = dcache.sets[setIndex];
+      //find the way which is LRU
+      lruCandidate = dcacheAssoc - 1;
+      for(j=0; j<dcacheAssoc; j++) {
+        if(set_curr.ways[j].lru == lruCandidate) { return j; }
+      }
+      break;
+    case 'L':
+      set_curr = l2cache.sets[setIndex];
+      //find the way which is LRU
+      lruCandidate = l2cacheAssoc - 1;
+      for(j=0; j<l2cacheAssoc; j++) {
+        if(set_curr.ways[j].lru == lruCandidate) { return j; }
+      }
+      break;
+    default:
+      break;
+  }
+  return 0;
+}
+
+void accessAndUpdateLRU (char cacheType, int setIndex, int wayIndex) {
+  struct set set_curr;
+  struct way way_curr;
+  int oldLru;
+
+  switch(cacheType) {
+    case 'I':
+      printf("I cache LRU update.\n");
+      set_curr = icache.sets[setIndex];
+      way_curr = set_curr.ways[wayIndex];
+      oldLru = way_curr.lru;
+
+      for(j=0; j<icacheAssoc; j++) {
+        if(j==wayIndex) {icache.sets[setIndex].ways[j].lru = 0; continue; }
+        if(icache.sets[setIndex].ways[j].lru < oldLru) { icache.sets[setIndex].ways[j].lru++; }
+      }
+      break;
+    case 'D':
+      printf("D cache LRU update.\n");
+      set_curr = dcache.sets[setIndex];
+      way_curr = set_curr.ways[wayIndex];
+      oldLru = way_curr.lru;
+
+      for(j=0; j<dcacheAssoc; j++) {
+        if(j==wayIndex) {dcache.sets[setIndex].ways[j].lru = 0; continue; }
+        if(dcache.sets[setIndex].ways[j].lru < oldLru) { dcache.sets[setIndex].ways[j].lru++; }
+      }
+      break;
+    case 'L':
+      printf("L2 cache LRU update.\n");
+      set_curr = l2cache.sets[setIndex];
+      way_curr = set_curr.ways[wayIndex];
+      oldLru = way_curr.lru;
+
+      for(j=0; j<l2cacheAssoc; j++) {
+        if(j==wayIndex) {l2cache.sets[setIndex].ways[j].lru = 0; continue; }
+        if(l2cache.sets[setIndex].ways[j].lru < oldLru) { l2cache.sets[setIndex].ways[j].lru++; }
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 void print_icache() {
   if(!iValid) { return; }
   printf("-------------------I Cache------------------------\n");
@@ -153,6 +234,14 @@ int intLog2 (uint32_t x) {
     result++;
     pdt *= 2;
   }
+  return result;
+}
+
+//Calculate x^n
+int power(int x, int n) {
+  int i;
+  int result = 1;
+  for(i=0; i<n; i++) { result *= x; }
   return result;
 }
 
@@ -249,6 +338,10 @@ void init_cache()
   print_icache();
   print_dcache();
   print_l2cache();
+
+  // accessAndUpdateLRU('L', 0, 7);
+  // print_l2cache();
+  // printf("LRU way index for D cache at set 11: %d\n", getLRUwayIndex('D', 11));
 }
 
 // Perform a memory access through the icache interface for the address 'addr'
