@@ -81,6 +81,12 @@ int i,j;
 //Validity flags
 int iValid, dValid, l2Valid;
 
+//Bit lengths
+int icacheIndexBits;
+int dcacheIndexBits;
+int l2cacheIndexBits;
+int blockOffsetBits;
+
 //------------------------------------//
 //          Helper Functions          //
 //------------------------------------//
@@ -138,6 +144,18 @@ void print_l2cache() {
   printf("---------------------------------------------------\n");
 }
 
+// Calculate the logarithm of x to the base 2
+int intLog2 (uint32_t x) {
+  if(x <= 1) { return 0; }
+  int pdt = 2;
+  int result = 1;
+  while (pdt < x) {
+    result++;
+    pdt *= 2;
+  }
+  return result;
+}
+
 //------------------------------------//
 //          Cache Functions           //
 //------------------------------------//
@@ -165,6 +183,14 @@ void init_cache()
   l2Valid = !(l2cacheSets < 1 || l2cacheAssoc < 1);
 
   printf("Validity Flags - i:d:l2 = %d:%d:%d\n", iValid, dValid, l2Valid);
+
+  //Calculate the number of bits for Index and BlockOffset
+  icacheIndexBits = intLog2(icacheSets);
+  dcacheIndexBits = intLog2(dcacheSets);
+  l2cacheIndexBits = intLog2(l2cacheSets);
+  blockOffsetBits = intLog2(blocksize);
+
+  printf("Index Bits: I:%d, D:%d, L2:%d, #BlockOffset: %d\n", icacheIndexBits, dcacheIndexBits, l2cacheIndexBits, blockOffsetBits);
 
   //----------------------------------------------------------------------
   //Create icache
