@@ -180,7 +180,7 @@ set_defaults()
 // Reads a line from the input stream and extracts the
 // Address and where the mem access should be directed to (I$ or D$)
 //
-// Returns True if Successful 
+// Returns True if Successful
 //
 int
 read_mem_access(uint32_t *addr, char *i_or_d)
@@ -221,7 +221,7 @@ main(int argc, char *argv[])
   init_cache();
 
   uint64_t totalRefs = 0;
-  uint64_t totalPenalties = 0;
+  uint64_t totalPenalties = 0;  //NOTE: Total Penalty = Total Access Time (Hit time + Miss Time)
   uint32_t addr = 0;
   char i_or_d = '\0';
 
