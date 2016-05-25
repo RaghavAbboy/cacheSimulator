@@ -80,6 +80,8 @@ struct cache l2cache;
 int i,j;
 //Validity flags
 int iValid, dValid, l2Valid;
+//Current L1 cache
+char currCache;
 
 //Bit lengths
 int icacheIndexBits;
@@ -90,6 +92,39 @@ int blockOffsetBits;
 //------------------------------------//
 //          Helper Functions          //
 //------------------------------------//
+//Function to get the next vacant way in a set, returns -1 if there is none
+int getVacantWay (char cacheType, int setIndex) {
+  int wayIndex = -1;
+  struct set set_curr;
+
+  switch(cacheType) {
+    case 'I':
+      set_curr = icache.sets[setIndex];
+      //search for a vacant spot
+      for(j=0; j<icacheAssoc; j++) {
+        if(set_curr.ways[j].valid == 0) { return j; }
+      }
+      break;
+    case 'D':
+      set_curr = dcache.sets[setIndex];
+      //search for a vacant spot
+      for(j=0; j<dcacheAssoc; j++) {
+        if(set_curr.ways[j].valid == 0) { return j; }
+      }
+      break;
+    case 'L':
+      set_curr = l2cache.sets[setIndex];
+      //search for a vacant spot
+      for(j=0; j<l2cacheAssoc; j++) {
+        if(set_curr.ways[j].valid == 0) { return j; }
+      }
+      break;
+    default:
+      break;
+  }
+  return wayIndex;
+}
+
 int getLRUwayIndex (char cacheType, int setIndex) {
   int wayIndex;
   int lruCandidate;
@@ -339,6 +374,7 @@ void init_cache()
   print_dcache();
   print_l2cache();
 
+  printf("Vacant way for l2 cache at set 3: %d\n", getLRUwayIndex('L', 3));
   // accessAndUpdateLRU('L', 0, 7);
   // print_l2cache();
   // printf("LRU way index for D cache at set 11: %d\n", getLRUwayIndex('D', 11));
@@ -349,10 +385,22 @@ void init_cache()
 //
 uint32_t icache_access(uint32_t addr)
 {
+  int icacheAccessTime = 0;
+  currCache = 'I';
+
   printf("icache_access called ------------\n");
   printf("Address: %x\n", addr);
 
-  return memspeed;
+  if(inclusive == 0) {
+    //Non inclusive case
+
+  }
+  else {
+    //Inclusive case
+
+  }
+
+  return icacheAccessTime;
 }
 
 // Perform a memory access through the dcache interface for the address 'addr'
@@ -360,9 +408,8 @@ uint32_t icache_access(uint32_t addr)
 //
 uint32_t dcache_access(uint32_t addr)
 {
-  //
-  //TODO: Implement D$
-  //
+  currCache = 'D';
+
   return memspeed;
 }
 
@@ -371,9 +418,11 @@ uint32_t dcache_access(uint32_t addr)
 //
 uint32_t l2cache_access(uint32_t addr)
 {
-  //
-  //TODO: Implement L2$
-  //
+
   return memspeed;
 }
+
+
+
+
 
