@@ -194,7 +194,7 @@ void accessAndUpdateLRU (char cacheType, int setIndex, int wayIndex) {
 
   switch(cacheType) {
     case 'I':
-      printf("I cache LRU update.\n");
+      // printf("I cache LRU update.\n");
       set_curr = icache.sets[setIndex];
       way_curr = set_curr.ways[wayIndex];
       oldLru = way_curr.lru;
@@ -205,7 +205,7 @@ void accessAndUpdateLRU (char cacheType, int setIndex, int wayIndex) {
       }
       break;
     case 'D':
-      printf("D cache LRU update.\n");
+      // printf("D cache LRU update.\n");
       set_curr = dcache.sets[setIndex];
       way_curr = set_curr.ways[wayIndex];
       oldLru = way_curr.lru;
@@ -216,7 +216,7 @@ void accessAndUpdateLRU (char cacheType, int setIndex, int wayIndex) {
       }
       break;
     case 'L':
-      printf("L2 cache LRU update.\n");
+      // printf("L2 cache LRU update.\n");
       set_curr = l2cache.sets[setIndex];
       way_curr = set_curr.ways[wayIndex];
       oldLru = way_curr.lru;
@@ -411,8 +411,8 @@ void init_cache()
 //
 uint32_t icache_access(uint32_t addr)
 {
-  printf("icache_access called ------------\n");
-  printf("Address: 0x%x\n", addr);
+  // printf("icache_access called ------------\n");
+  // printf("Address: 0x%x\n", addr);
 
   //Base cases when icacheSets=0, icacheAssoc=0
   if(icacheSets == 0 || icacheAssoc == 0) { return l2cache_access(addr); }
@@ -428,7 +428,7 @@ uint32_t icache_access(uint32_t addr)
   icacheIndex = (icacheIndexBits == 0)? 0 : address % power(2,icacheIndexBits);
   icacheTag = address / power(2,icacheIndexBits);
 
-  printf("Index: %d, Tag: %d\n", icacheIndex, icacheTag);
+  // printf("Index: %d, Tag: %d\n", icacheIndex, icacheTag);
 
   //Check for a hit
   struct set set_curr = icache.sets[icacheIndex];
@@ -451,7 +451,7 @@ uint32_t icache_access(uint32_t addr)
 
   //TODO: Update icacheStatistics before returning
   //remove
-  print_icache();
+  // print_icache();
   return icacheAccessTime;
 }
 
@@ -460,13 +460,47 @@ uint32_t icache_access(uint32_t addr)
 //
 uint32_t dcache_access(uint32_t addr)
 {
-  printf("dcache_access called ------------\n");
-  printf("Address: %x\n", addr);
+  // printf("dcache_access called ------------\n");
+  // printf("Address: 0x%x\n", addr);
+
+  //Base cases when icacheSets=0, icacheAssoc=0
+  if(dcacheSets == 0 || dcacheAssoc == 0) { return l2cache_access(addr); }
 
   //Prepare variables
   int dcacheAccessTime = 0;
 
+  //Calculate index, tag
+  uint32_t address = addr;
 
+  //remove the block offset bits
+  address = address >> blockOffsetBits;
+  dcacheIndex = (dcacheIndexBits == 0)? 0 : address % power(2,dcacheIndexBits);
+  dcacheTag = address / power(2,dcacheIndexBits);
+
+  // printf("Index: %d, Tag: %d\n", dcacheIndex, dcacheTag);
+
+  //Check for a hit
+  struct set set_curr = dcache.sets[dcacheIndex];
+  for(j=0; j<dcacheAssoc; j++) {
+    struct way way_curr = set_curr.ways[j];
+    if(way_curr.valid && way_curr.tag == dcacheTag) {
+      accessAndUpdateLRU('D', dcacheIndex, j);
+      return dcacheHitTime;
+    }
+  }
+
+  //Miss, so handle it appropriately
+  //Add hit time to access time
+  int wayIndex = getWayIndex('D', dcacheIndex);
+  dcache.sets[dcacheIndex].ways[wayIndex].valid = 1;
+  dcache.sets[dcacheIndex].ways[wayIndex].tag = dcacheTag;
+  accessAndUpdateLRU('D', dcacheIndex, wayIndex);
+
+  dcacheAccessTime = dcacheHitTime + l2cache_access(addr);
+
+  //TODO: Update icacheStatistics before returning
+  //remove
+  //print_dcache();
   return dcacheAccessTime;
 }
 
@@ -475,13 +509,54 @@ uint32_t dcache_access(uint32_t addr)
 //
 uint32_t l2cache_access(uint32_t addr)
 {
-  printf("l2cache_access called ------------\n");
-  printf("Address: %x\n", addr);
+  // printf("l2cache_access called ------------\n");
+  // printf("Address: 0x%x\n", addr);
+
+  //Base cases when l2cacheSets=0, l2cacheAssoc=0
+  if(l2cacheSets == 0 || l2cacheAssoc == 0) { return memspeed; }
 
   //Prepare variables
   int l2cacheAccessTime = 0;
 
+  //Calculate index, tag
+  uint32_t address = addr;
 
+  //remove the block offset bits
+  address = address >> blockOffsetBits;
+  l2cacheIndex = (l2cacheIndexBits == 0)? 0 : address % power(2,l2cacheIndexBits);
+  l2cacheTag = address / power(2,l2cacheIndexBits);
+
+  // printf("Index: %d, Tag: %d\n", l2cacheIndex, l2cacheTag);
+
+  //Check for a hit
+  struct set set_curr = l2cache.sets[l2cacheIndex];
+  for(j=0; j<l2cacheAssoc; j++) {
+    struct way way_curr = set_curr.ways[j];
+    if(way_curr.valid && way_curr.tag == l2cacheTag) {
+      accessAndUpdateLRU('L', l2cacheIndex, j);
+      return l2cacheHitTime;
+    }
+  }
+
+  //Miss, so handle it appropriately
+
+  if(inclusive == 0) {
+    //Non inclusive case
+    //Add hit time to access time
+    int wayIndex = getWayIndex('L', l2cacheIndex);
+    l2cache.sets[l2cacheIndex].ways[wayIndex].valid = 1;
+    l2cache.sets[l2cacheIndex].ways[wayIndex].tag = l2cacheTag;
+    accessAndUpdateLRU('L', l2cacheIndex, wayIndex);
+  }
+  else {
+    printf("Inclusive case implementation pending.\n");
+  }
+
+  l2cacheAccessTime = l2cacheHitTime + memspeed;
+
+  //TODO: Update l2cacheStatistics before returning
+  //remove
+  // print_l2cache();
   return l2cacheAccessTime;
 }
 
