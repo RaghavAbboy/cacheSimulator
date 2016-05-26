@@ -89,11 +89,22 @@ int dcacheIndexBits;
 int l2cacheIndexBits;
 int blockOffsetBits;
 
+//Current Index and Tag values
+uint32_t icacheIndex;
+uint32_t icacheTag;
+
+uint32_t dcacheIndex;
+uint32_t dcacheTag;
+
+uint32_t l2cacheIndex;
+uint32_t l2cacheTag;
+
 //------------------------------------//
 //          Helper Functions          //
 //------------------------------------//
+
 //Function to get the next vacant way in a set, returns -1 if there is none
-int getVacantWay (char cacheType, int setIndex) {
+int getVacantWayIndex (char cacheType, int setIndex) {
   int wayIndex = -1;
   struct set set_curr;
 
@@ -125,6 +136,7 @@ int getVacantWay (char cacheType, int setIndex) {
   return wayIndex;
 }
 
+//Function to get the LRU way index in a set
 int getLRUwayIndex (char cacheType, int setIndex) {
   int wayIndex;
   int lruCandidate;
@@ -162,6 +174,19 @@ int getLRUwayIndex (char cacheType, int setIndex) {
   return 0;
 }
 
+//Function to get the next candidate way index in a set for replacement
+int getWayIndex (char cacheType, int setIndex) {
+  int wayIndex = getVacantWayIndex(cacheType, setIndex);
+
+  //If a vacant spot is found, return that way Index
+  if(wayIndex != -1) { return wayIndex; }
+
+  //If no vacant spot, get the LRU way Index
+  wayIndex = getLRUwayIndex(cacheType, setIndex);
+  return wayIndex;
+}
+
+//Function to access wayIndex, thereby updating the LRU values in a set
 void accessAndUpdateLRU (char cacheType, int setIndex, int wayIndex) {
   struct set set_curr;
   struct way way_curr;
@@ -206,6 +231,7 @@ void accessAndUpdateLRU (char cacheType, int setIndex, int wayIndex) {
   }
 }
 
+//Functions to print out the contents of a cache
 void print_icache() {
   if(!iValid) { return; }
   printf("-------------------I Cache------------------------\n");
@@ -374,7 +400,7 @@ void init_cache()
   print_dcache();
   print_l2cache();
 
-  printf("Vacant way for l2 cache at set 3: %d\n", getLRUwayIndex('L', 3));
+  // printf("Vacant way for l2 cache at set 3: %d\n", getLRUwayIndex('L', 3));
   // accessAndUpdateLRU('L', 0, 7);
   // print_l2cache();
   // printf("LRU way index for D cache at set 11: %d\n", getLRUwayIndex('D', 11));
@@ -385,21 +411,47 @@ void init_cache()
 //
 uint32_t icache_access(uint32_t addr)
 {
-  int icacheAccessTime = 0;
-  currCache = 'I';
-
   printf("icache_access called ------------\n");
-  printf("Address: %x\n", addr);
+  printf("Address: 0x%x\n", addr);
 
-  if(inclusive == 0) {
-    //Non inclusive case
+  //Base cases when icacheSets=0, icacheAssoc=0
+  if(icacheSets == 0 || icacheAssoc == 0) { return l2cache_access(addr); }
 
+  //Prepare variables
+  int icacheAccessTime = 0;
+
+  //Calculate index, tag
+  uint32_t address = addr;
+
+  //remove the block offset bits
+  address = address >> blockOffsetBits;
+  icacheIndex = (icacheIndexBits == 0)? 0 : address % power(2,icacheIndexBits);
+  icacheTag = address / power(2,icacheIndegxBits);
+
+  printf("Index: %d, Tag: %d\n", icacheIndex, icacheTag);
+
+  //Check for a hit
+  struct set set_curr = icache.sets[icacheIndex];
+  for(j=0; j<icacheAssoc; j++) {
+    struct way way_curr = set_curr.ways[j];
+    if(way_curr.valid && way_curr.tag == icacheTag) {
+      accessAndUpdateLRU('I', icacheIndex, j);
+      return icacheHitTime;
+    }
   }
-  else {
-    //Inclusive case
 
-  }
+  //Miss, so handle it appropriately
+  //Add hit time to access time
+  int wayIndex = getWayIndex('I', icacheIndex);
+  icache.sets[icacheIndex].ways[wayIndex].valid = 1;
+  icache.sets[icacheIndex].ways[wayIndex].tag = icacheTag;
+  accessAndUpdateLRU('I', icacheIndex, wayIndex);
 
+  icacheAccessTime = icacheHitTime + l2cache_access(addr);
+
+  //TODO: Update icacheStatistics before returning
+  //remove
+  print_icache();
   return icacheAccessTime;
 }
 
@@ -408,9 +460,14 @@ uint32_t icache_access(uint32_t addr)
 //
 uint32_t dcache_access(uint32_t addr)
 {
-  currCache = 'D';
+  printf("dcache_access called ------------\n");
+  printf("Address: %x\n", addr);
 
-  return memspeed;
+  //Prepare variables
+  int dcacheAccessTime = 0;
+
+
+  return dcacheAccessTime;
 }
 
 // Perform a memory access to the l2cache for the address 'addr'
@@ -418,8 +475,14 @@ uint32_t dcache_access(uint32_t addr)
 //
 uint32_t l2cache_access(uint32_t addr)
 {
+  printf("l2cache_access called ------------\n");
+  printf("Address: %x\n", addr);
 
-  return memspeed;
+  //Prepare variables
+  int l2cacheAccessTime = 0;
+
+
+  return l2cacheAccessTime;
 }
 
 
