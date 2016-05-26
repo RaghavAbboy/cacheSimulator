@@ -426,7 +426,7 @@ uint32_t icache_access(uint32_t addr)
   //remove the block offset bits
   address = address >> blockOffsetBits;
   icacheIndex = (icacheIndexBits == 0)? 0 : address % power(2,icacheIndexBits);
-  icacheTag = address / power(2,icacheIndegxBits);
+  icacheTag = address / power(2,icacheIndexBits);
 
   printf("Index: %d, Tag: %d\n", icacheIndex, icacheTag);
 
