@@ -326,13 +326,13 @@ void init_cache()
   l2cachePenalties  = 0;
 
   //Initialize cache by allocating memory
-  printf("init_cache called.\n");
+  // printf("init_cache called.\n");
 
   iValid = !(icacheSets < 1 || icacheAssoc < 1);
   dValid = !(dcacheSets < 1 || dcacheAssoc < 1);
   l2Valid = !(l2cacheSets < 1 || l2cacheAssoc < 1);
 
-  printf("Validity Flags - i:d:l2 = %d:%d:%d\n", iValid, dValid, l2Valid);
+  // printf("Validity Flags - i:d:l2 = %d:%d:%d\n", iValid, dValid, l2Valid);
 
   //Calculate the number of bits for Index and BlockOffset
   icacheIndexBits = intLog2(icacheSets);
@@ -340,7 +340,7 @@ void init_cache()
   l2cacheIndexBits = intLog2(l2cacheSets);
   blockOffsetBits = intLog2(blocksize);
 
-  printf("Index Bits: I:%d, D:%d, L2:%d, #BlockOffset: %d\n", icacheIndexBits, dcacheIndexBits, l2cacheIndexBits, blockOffsetBits);
+  // printf("Index Bits: I:%d, D:%d, L2:%d, #BlockOffset: %d\n", icacheIndexBits, dcacheIndexBits, l2cacheIndexBits, blockOffsetBits);
 
   //----------------------------------------------------------------------
   //Create icache
@@ -396,9 +396,9 @@ void init_cache()
   }
   //----------------------------------------------------------------------
 
-  print_icache();
-  print_dcache();
-  print_l2cache();
+  // print_icache();
+  // print_dcache();
+  // print_l2cache();
 
   // printf("Vacant way for l2 cache at set 3: %d\n", getLRUwayIndex('L', 3));
   // accessAndUpdateLRU('L', 0, 7);
