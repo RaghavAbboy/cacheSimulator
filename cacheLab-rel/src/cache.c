@@ -542,16 +542,63 @@ uint32_t l2cache_access(uint32_t addr)
 
   if(inclusive == 0) {
     //Non inclusive case
-    //Add hit time to access time
     int wayIndex = getWayIndex('L', l2cacheIndex);
     l2cache.sets[l2cacheIndex].ways[wayIndex].valid = 1;
     l2cache.sets[l2cacheIndex].ways[wayIndex].tag = l2cacheTag;
     accessAndUpdateLRU('L', l2cacheIndex, wayIndex);
   }
   else {
-    printf("Inclusive case implementation pending.\n");
+    //Inclusive case
+    //Kick out the current block while checking for their presence in I/D caches
+
+    //Get the address of the current block waiting to be kicked out
+    uint32_t wayIndex = getWayIndex('L', l2cacheIndex);
+    uint32_t oldTag = l2cache.sets[l2cacheIndex].ways[wayIndex].tag;
+
+    uint32_t oldAddress = oldTag << l2cacheIndexBits;
+    oldAddress = oldAddress | l2cacheIndex;
+    // oldAddress = oldAddress << blockOffsetBits;
+
+    //I-cache entry eviction
+    //Calculate the index and tag of icache
+    icacheIndex = (icacheIndexBits == 0)? 0 : oldAddress % power(2,icacheIndexBits);
+    icacheTag = oldAddress / power(2,icacheIndexBits);
+
+    //Check whether the same entry exists in I cache
+    struct set set_curr = icache.sets[icacheIndex];
+    for(j=0; j<icacheAssoc; j++) {
+      struct way way_curr = set_curr.ways[j];
+      if(way_curr.valid && way_curr.tag == icacheTag) {
+        //If found, invalidate the entry
+        icache.sets[icacheIndex].ways[j].valid = 0;
+      }
+    }
+
+    //D-cache entry eviction
+    //Calculate the index and tag of icache
+    dcacheIndex = (dcacheIndexBits == 0)? 0 : oldAddress % power(2,dcacheIndexBits);
+    dcacheTag = oldAddress / power(2,dcacheIndexBits);
+
+    //Check whether the same entry exists in D cache
+    set_curr = dcache.sets[dcacheIndex];
+    for(j=0; j<dcacheAssoc; j++) {
+      struct way way_curr = set_curr.ways[j];
+      if(way_curr.valid && way_curr.tag == dcacheTag) {
+        //If found, invalidate the entry
+        dcache.sets[dcacheIndex].ways[j].valid = 0;
+      }
+    }
+
+    //Now, replace the current entry with a new one
+    wayIndex = getWayIndex('L', l2cacheIndex);
+    l2cache.sets[l2cacheIndex].ways[wayIndex].valid = 1;
+    l2cache.sets[l2cacheIndex].ways[wayIndex].tag = l2cacheTag;
+    accessAndUpdateLRU('L', l2cacheIndex, wayIndex);
+
+    // printf("Inclusive case implementation pending.\n");
   }
 
+  //Add hit time to access time
   l2cacheAccessTime = l2cacheHitTime + memspeed;
 
   //TODO: Update l2cacheStatistics before returning
