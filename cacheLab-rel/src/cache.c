@@ -444,7 +444,9 @@ uint32_t icache_access(uint32_t addr)
 
   //Miss, so handle it appropriately
   icacheMisses++;
-  icacheAccessTime = icacheHitTime + l2cache_access(addr);
+  uint32_t icacheMissPenalty = l2cache_access(addr);
+  icachePenalties += icacheMissPenalty;
+  icacheAccessTime = icacheHitTime + icacheMissPenalty;
 
   //Add hit time to access time
   int wayIndex = getWayIndex('I', icacheIndex);
@@ -495,7 +497,9 @@ uint32_t dcache_access(uint32_t addr)
 
   //Miss, so handle it appropriately
   dcacheMisses++;
-  dcacheAccessTime = dcacheHitTime + l2cache_access(addr);
+  uint32_t dcacheMissPenalty = l2cache_access(addr);
+  dcachePenalties += dcacheMissPenalty;
+  dcacheAccessTime = dcacheHitTime + dcacheMissPenalty;
 
   //Add hit time to access time
   int wayIndex = getWayIndex('D', dcacheIndex);
@@ -604,6 +608,7 @@ uint32_t l2cache_access(uint32_t addr)
 
   }
 
+  l2cachePenalties += memspeed;
   //Add hit time to access time
   l2cacheAccessTime = l2cacheHitTime + memspeed;
 
