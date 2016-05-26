@@ -417,6 +417,8 @@ uint32_t icache_access(uint32_t addr)
   //Base cases when icacheSets=0, icacheAssoc=0
   if(icacheSets == 0 || icacheAssoc == 0) { return l2cache_access(addr); }
 
+  icacheRefs++;
+
   //Prepare variables
   int icacheAccessTime = 0;
 
@@ -441,14 +443,14 @@ uint32_t icache_access(uint32_t addr)
   }
 
   //Miss, so handle it appropriately
+  icacheMisses++;
+  icacheAccessTime = icacheHitTime + l2cache_access(addr);
+
   //Add hit time to access time
   int wayIndex = getWayIndex('I', icacheIndex);
   icache.sets[icacheIndex].ways[wayIndex].valid = 1;
   icache.sets[icacheIndex].ways[wayIndex].tag = icacheTag;
   accessAndUpdateLRU('I', icacheIndex, wayIndex);
-
-  icacheAccessTime = icacheHitTime + l2cache_access(addr);
-
   //TODO: Update icacheStatistics before returning
   //remove
   // print_icache();
@@ -465,6 +467,8 @@ uint32_t dcache_access(uint32_t addr)
 
   //Base cases when icacheSets=0, icacheAssoc=0
   if(dcacheSets == 0 || dcacheAssoc == 0) { return l2cache_access(addr); }
+
+  dcacheRefs++;
 
   //Prepare variables
   int dcacheAccessTime = 0;
@@ -490,14 +494,14 @@ uint32_t dcache_access(uint32_t addr)
   }
 
   //Miss, so handle it appropriately
+  dcacheMisses++;
+  dcacheAccessTime = dcacheHitTime + l2cache_access(addr);
+
   //Add hit time to access time
   int wayIndex = getWayIndex('D', dcacheIndex);
   dcache.sets[dcacheIndex].ways[wayIndex].valid = 1;
   dcache.sets[dcacheIndex].ways[wayIndex].tag = dcacheTag;
   accessAndUpdateLRU('D', dcacheIndex, wayIndex);
-
-  dcacheAccessTime = dcacheHitTime + l2cache_access(addr);
-
   //TODO: Update icacheStatistics before returning
   //remove
   //print_dcache();
@@ -514,6 +518,8 @@ uint32_t l2cache_access(uint32_t addr)
 
   //Base cases when l2cacheSets=0, l2cacheAssoc=0
   if(l2cacheSets == 0 || l2cacheAssoc == 0) { return memspeed; }
+
+  l2cacheRefs++;
 
   //Prepare variables
   int l2cacheAccessTime = 0;
@@ -539,6 +545,7 @@ uint32_t l2cache_access(uint32_t addr)
   }
 
   //Miss, so handle it appropriately
+  l2cacheMisses++;
 
   if(inclusive == 0) {
     //Non inclusive case
@@ -561,31 +568,31 @@ uint32_t l2cache_access(uint32_t addr)
 
     //I-cache entry eviction
     //Calculate the index and tag of icache
-    icacheIndex = (icacheIndexBits == 0)? 0 : oldAddress % power(2,icacheIndexBits);
-    icacheTag = oldAddress / power(2,icacheIndexBits);
+    uint32_t icacheIndex2 = (icacheIndexBits == 0)? 0 : oldAddress % power(2,icacheIndexBits);
+    uint32_t icacheTag2 = oldAddress / power(2,icacheIndexBits);
 
     //Check whether the same entry exists in I cache
-    struct set set_curr = icache.sets[icacheIndex];
+    struct set set_curr = icache.sets[icacheIndex2];
     for(j=0; j<icacheAssoc; j++) {
       struct way way_curr = set_curr.ways[j];
-      if(way_curr.valid && way_curr.tag == icacheTag) {
+      if(way_curr.valid && way_curr.tag == icacheTag2) {
         //If found, invalidate the entry
-        icache.sets[icacheIndex].ways[j].valid = 0;
+        icache.sets[icacheIndex2].ways[j].valid = 0;
       }
     }
 
     //D-cache entry eviction
     //Calculate the index and tag of icache
-    dcacheIndex = (dcacheIndexBits == 0)? 0 : oldAddress % power(2,dcacheIndexBits);
-    dcacheTag = oldAddress / power(2,dcacheIndexBits);
+    uint32_t dcacheIndex2 = (dcacheIndexBits == 0)? 0 : oldAddress % power(2,dcacheIndexBits);
+    uint32_t dcacheTag2 = oldAddress / power(2,dcacheIndexBits);
 
     //Check whether the same entry exists in D cache
-    set_curr = dcache.sets[dcacheIndex];
+    set_curr = dcache.sets[dcacheIndex2];
     for(j=0; j<dcacheAssoc; j++) {
       struct way way_curr = set_curr.ways[j];
-      if(way_curr.valid && way_curr.tag == dcacheTag) {
+      if(way_curr.valid && way_curr.tag == dcacheTag2) {
         //If found, invalidate the entry
-        dcache.sets[dcacheIndex].ways[j].valid = 0;
+        dcache.sets[dcacheIndex2].ways[j].valid = 0;
       }
     }
 
@@ -595,7 +602,6 @@ uint32_t l2cache_access(uint32_t addr)
     l2cache.sets[l2cacheIndex].ways[wayIndex].tag = l2cacheTag;
     accessAndUpdateLRU('L', l2cacheIndex, wayIndex);
 
-    // printf("Inclusive case implementation pending.\n");
   }
 
   //Add hit time to access time
